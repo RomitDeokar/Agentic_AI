@@ -18,7 +18,8 @@ import uvicorn
 
 # Google Gemini imports
 import google.generativeai as genai
-
+from dotenv import load_dotenv
+load_dotenv()
 # Configuration
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 if GEMINI_API_KEY:
