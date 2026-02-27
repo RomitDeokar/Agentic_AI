@@ -1,0 +1,480 @@
+/* ============================================
+   SMARTROUTE - STUNNING MODERN UI
+   Professional Design System v3.0
+   ============================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+    /* Vibrant Modern Palette */
+    --primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --accent: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    --success: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    --warm: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    --cool: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+    
+    /* Neumorphism & Glassmorphism */
+    --glass-bg: rgba(255, 255, 255, 0.1);
+    --glass-border: rgba(255, 255, 255, 0.2);
+    --blur-amount: 25px;
+    
+    /* Shadows - Elevated Design */
+    --shadow-1: 0 2px 10px rgba(102, 126, 234, 0.1);
+    --shadow-2: 0 4px 20px rgba(102, 126, 234, 0.15);
+    --shadow-3: 0 8px 30px rgba(102, 126, 234, 0.2);
+    --shadow-4: 0 15px 50px rgba(102, 126, 234, 0.25);
+    
+    --glow: 0 0 20px rgba(102, 126, 234, 0.6);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Poppins', sans-serif !important;
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #7e22ce 100%);
+    background-attachment: fixed;
+    color: #fff;
+    overflow-x: hidden;
+}
+
+/* Animated Background */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+        radial-gradient(circle at 20% 50%, rgba(102, 126, 234, 0.2) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(147, 51, 234, 0.2) 0%, transparent 50%),
+        radial-gradient(circle at 40% 20%, rgba(236, 72, 153, 0.2) 0%, transparent 50%);
+    animation: backgroundShift 20s ease infinite;
+    z-index: -1;
+}
+
+@keyframes backgroundShift {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.8; }
+}
+
+/* Header - Stunning */
+.header {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(var(--blur-amount));
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 1.5rem 3rem;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.logo {
+    font-size: 1.8rem;
+    font-weight: 800;
+    background: var(--primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    filter: drop-shadow(0 2px 8px rgba(102, 126, 234, 0.5));
+}
+
+.logo i {
+    font-size: 2rem;
+    background: var(--primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Beautiful Cards */
+.timeline-day, .activity-card, .sidebar-section {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(var(--blur-amount));
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 24px;
+    padding: 2rem;
+    margin: 1.5rem 0;
+    box-shadow: var(--shadow-3);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+    overflow: hidden;
+}
+
+.timeline-day::before, .activity-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 6px;
+    background: var(--primary);
+    transform: scaleX(0);
+    transition: transform 0.5s ease;
+}
+
+.timeline-day:hover, .activity-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: var(--shadow-4), var(--glow);
+    border-color: rgba(102, 126, 234, 0.5);
+}
+
+.timeline-day:hover::before, .activity-card:hover::before {
+    transform: scaleX(1);
+}
+
+/* Day Header - Stunning */
+.day-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid rgba(102, 126, 234, 0.3);
+}
+
+.day-header h4 {
+    font-size: 2rem;
+    font-weight: 700;
+    background: var(--primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 2px 4px rgba(102, 126, 234, 0.3));
+}
+
+.day-cost {
+    font-size: 1.5rem;
+    font-weight: 700;
+    padding: 0.75rem 1.5rem;
+    background: var(--success);
+    border-radius: 16px;
+    box-shadow: var(--shadow-2);
+    animation: pulse 2s ease infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+/* Activity Cards - Color Coded */
+.activity-card {
+    margin: 1rem 0;
+    padding: 1.5rem;
+}
+
+.activity-card[data-category="cultural"]::before {
+    background: linear-gradient(90deg, #667eea, #764ba2);
+}
+
+.activity-card[data-category="adventure"]::before {
+    background: linear-gradient(90deg, #11998e, #38ef7d);
+}
+
+.activity-card[data-category="relaxation"]::before {
+    background: linear-gradient(90deg, #fa709a, #fee140);
+}
+
+.activity-card[data-category="food"]::before {
+    background: linear-gradient(90deg, #f093fb, #f5576c);
+}
+
+.activity-time {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    background: rgba(102, 126, 234, 0.2);
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.activity-details h5 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin: 0.5rem 0;
+    color: #fff;
+}
+
+.activity-meta {
+    display: flex;
+    gap: 1.5rem;
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* Buttons - Stunning */
+.btn-primary, .btn-demo, .btn-small {
+    background: var(--primary);
+    border: none;
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 16px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-2);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-primary::after, .btn-demo::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+.btn-primary:hover::after, .btn-demo:hover::after {
+    width: 300px;
+    height: 300px;
+}
+
+.btn-primary:hover, .btn-demo:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-4), var(--glow);
+}
+
+.btn-primary:active {
+    transform: scale(0.95);
+}
+
+/* Forms - Beautiful */
+.form-group input, .form-group select, .persona-select {
+    width: 100%;
+    padding: 1rem 1.5rem;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    border-radius: 16px;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.form-group input:focus, .form-group select:focus, .persona-select:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.2), var(--glow);
+    transform: translateY(-2px);
+}
+
+.form-group input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+/* Preference Tags - Modern */
+.preference-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.preference-tags .tag {
+    padding: 0.75rem 1.5rem;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 30px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.preference-tags .tag:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-2);
+    border-color: rgba(102, 126, 234, 0.5);
+}
+
+.preference-tags .tag.active {
+    background: var(--primary);
+    border-color: transparent;
+    box-shadow: var(--glow);
+}
+
+/* Weather Cards - Stunning */
+.weather-card {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(var(--blur-amount));
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
+    padding: 1.5rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    margin: 1rem 0;
+}
+
+.weather-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-3);
+}
+
+.weather-icon {
+    font-size: 3.5rem;
+    margin: 1rem 0;
+}
+
+.weather-icon i {
+    background: var(--warm);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 4px 8px rgba(250, 112, 154, 0.4));
+}
+
+.weather-temp {
+    font-size: 2.5rem;
+    font-weight: 700;
+    background: var(--success);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Map Container - Beautiful */
+.map-container {
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: var(--shadow-4);
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    position: relative;
+    height: 500px;
+}
+
+.map-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 6px;
+    background: var(--primary);
+    z-index: 10;
+}
+
+/* Bottom Panel - Minimizable */
+.bottom-panel {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(var(--blur-amount));
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 2rem;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.panel-minimize-btn {
+    position: absolute;
+    top: -50px;
+    right: 30px;
+    width: 50px;
+    height: 50px;
+    background: var(--primary);
+    border: none;
+    border-radius: 50%;
+    color: white;
+    cursor: pointer;
+    font-size: 1.3rem;
+    box-shadow: var(--shadow-3), var(--glow);
+    transition: all 0.3s ease;
+    z-index: 100;
+}
+
+.panel-minimize-btn:hover {
+    transform: translateY(-5px) rotate(180deg);
+    box-shadow: var(--shadow-4), 0 0 30px rgba(102, 126, 234, 0.8);
+}
+
+.bottom-panel.minimized {
+    transform: translateY(calc(100% - 60px));
+}
+
+/* Scrollbar - Beautiful */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+}
+
+/* Loading - Stunning */
+.loader {
+    width: 60px;
+    height: 60px;
+    border: 5px solid rgba(102, 126, 234, 0.1);
+    border-top-color: #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.loading-overlay {
+    background: rgba(30, 60, 114, 0.95);
+    backdrop-filter: blur(20px);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .header {
+        padding: 1rem;
+    }
+    
+    .timeline-day, .activity-card, .sidebar-section {
+        padding: 1.5rem;
+        border-radius: 16px;
+    }
+    
+    .day-header h4 {
+        font-size: 1.5rem;
+    }
+    
+    .map-container {
+        height: 300px;
+    }
+}
+
+/* Glow Effects */
+@keyframes glow {
+    0%, 100% {
+        filter: drop-shadow(0 0 5px rgba(102, 126, 234, 0.5));
+    }
+    50% {
+        filter: drop-shadow(0 0 20px rgba(102, 126, 234, 0.8));
+    }
+}
+
+.glow-effect {
+    animation: glow 2s ease infinite;
+}

@@ -251,30 +251,38 @@ function getSelectedPreferences() {
 
 function displayItinerary(itinerary) {
     const timeline = document.getElementById('timelineContent');
-    if (!timeline || !itinerary) return;
+    if (!timeline || !itinerary || !itinerary.days) {
+        console.error('❌ Cannot display itinerary:', { timeline, itinerary });
+        return;
+    }
+    
+    console.log('📅 Displaying itinerary:', itinerary);
     
     timeline.innerHTML = '';
     
     itinerary.days.forEach(day => {
+        if (!day || !day.activities) return;
+        
         const dayElement = document.createElement('div');
         dayElement.className = 'timeline-day';
+        
+        const dayCost = day.activities.reduce((sum, act) => sum + (act.cost || 0), 0);
+        
         dayElement.innerHTML = `
             <div class="day-header">
-                <h4>Day ${day.day}</h4>
-                <span class="day-cost">${Utils.formatCurrency(
-                    day.activities.reduce((sum, act) => sum + act.cost, 0)
-                )}</span>
+                <h4>Day ${day.day || '?'}</h4>
+                <span class="day-cost">${Utils.formatCurrency(dayCost)}</span>
             </div>
             <div class="day-activities">
                 ${day.activities.map(act => `
-                    <div class="activity-card" data-category="${act.category}">
-                        <div class="activity-time">${act.time}</div>
+                    <div class="activity-card" data-category="${act.category || 'default'}">
+                        <div class="activity-time">${act.time || '00:00'}</div>
                         <div class="activity-details">
-                            <h5>${act.activity}</h5>
-                            <p>${act.location}</p>
+                            <h5>${act.activity || 'Activity'}</h5>
+                            <p><i class="fas fa-map-marker-alt"></i> ${act.location || 'Location'}</p>
                             <div class="activity-meta">
-                                <span><i class="fas fa-clock"></i> ${act.duration}</span>
-                                <span><i class="fas fa-rupee-sign"></i> ${act.cost}</span>
+                                <span><i class="fas fa-clock"></i> ${act.duration || 'N/A'}</span>
+                                <span><i class="fas fa-rupee-sign"></i> ${act.cost || 0}</span>
                             </div>
                         </div>
                     </div>
@@ -283,23 +291,41 @@ function displayItinerary(itinerary) {
         `;
         timeline.appendChild(dayElement);
     });
+    
+    // Update map with itinerary
+    if (typeof updateMapWithItinerary === 'function') {
+        updateMapWithItinerary(itinerary);
+    }
 }
 
 function updateWeatherCards(weather) {
     const container = document.getElementById('weatherCards');
-    if (!container || !weather) return;
+    if (!container || !weather || !weather.forecasts) {
+        console.error('❌ Cannot update weather cards');
+        return;
+    }
     
-    container.innerHTML = weather.forecasts.map(forecast => `
+    console.log('🌤️  Updating weather cards:', weather);
+    
+    container.innerHTML = weather.forecasts.map(forecast => {
+        const date = new Date(forecast.date || Date.now());
+        const dateStr = date.toLocaleDateString('en-US', { 
+            weekday: 'short', 
+            month: 'short', 
+            day: 'numeric' 
+        });
+        
+        return `
         <div class="weather-card">
-            <div class="weather-date">${new Date(forecast.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</div>
+            <div class="weather-date">${dateStr}</div>
             <div class="weather-icon">
-                <i class="fas ${getWeatherIcon(forecast.condition)}"></i>
+                <i class="fas ${getWeatherIcon(forecast.condition || 'Sunny')}"></i>
             </div>
-            <div class="weather-temp">${forecast.temp}°C</div>
-            <div class="weather-condition">${forecast.condition}</div>
-            <div class="weather-precip">${forecast.precipitation_prob}% rain</div>
+            <div class="weather-temp">${forecast.temp || 25}°C</div>
+            <div class="weather-condition">${forecast.condition || 'Sunny'}</div>
+            <div class="weather-precip">${forecast.precipitation_prob || 0}% rain</div>
         </div>
-    `).join('');
+    `}).join('');
 }
 
 function getWeatherIcon(condition) {
@@ -314,11 +340,16 @@ function getWeatherIcon(condition) {
 }
 
 function updateBudgetBreakdown(budget) {
-    if (!budget) return;
+    if (!budget || !budget.breakdown) {
+        console.error('❌ Cannot update budget breakdown');
+        return;
+    }
+    
+    console.log('💰 Updating budget:', budget);
     
     // Update budget meter
     const breakdown = budget.breakdown;
-    const total = Object.values(breakdown).reduce((sum, val) => sum + val, 0);
+    const total = Object.values(breakdown).reduce((sum, val) => sum + (val || 0), 0);
     
     STATE.budget.used = total;
     
@@ -326,13 +357,28 @@ function updateBudgetBreakdown(budget) {
     const budgetUsed = document.querySelector('.budget-used');
     
     if (budgetFill) {
-        const percentage = (total / STATE.budget.total) * 100;
+        const percentage = (total / (STATE.budget.total || 15000)) * 100;
         budgetFill.style.width = `${Math.min(percentage, 100)}%`;
     }
     
     if (budgetUsed) {
-        budgetUsed.textContent = Utils.formatCurrency(total);
+        budgetUsed.textContent = Utils.formatCurrency(Math.round(total));
     }
+    
+    // Update breakdown categories
+    const categories = {
+        accommodation: breakdown.accommodation || 0,
+        food: breakdown.food || 0,
+        transport: breakdown.transport || 0,
+        activities: breakdown.activities || 0
+    };
+    
+    Object.entries(categories).forEach(([cat, amount]) => {
+        const el = document.querySelector(`.budget-cat[data-category="${cat}"] .amount`);
+        if (el) {
+            el.textContent = Utils.formatCurrency(Math.round(amount));
+        }
+    });
 }
 
 function updateExplanation(explanation) {

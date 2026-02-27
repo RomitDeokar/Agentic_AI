@@ -229,36 +229,37 @@ class BackendAPI {
 
     // Mock data generator for offline mode
     generateMockItinerary(tripData) {
-        const days = [];
-        const dailyBudget = tripData.budget / tripData.duration;
+        console.log('📦 Generating mock itinerary for:', tripData);
         
-        for (let day = 1; day <= tripData.duration; day++) {
-            const activities = [
-                {
-                    time: "09:00",
-                    activity: "Morning Activity",
-                    location: `${tripData.destination} - Location ${day}`,
+        const days = [];
+        const dailyBudget = (tripData.budget || 15000) / (tripData.duration || 3);
+        
+        const activityTemplates = {
+            cultural: ['Visit Palace', 'Museum Tour', 'Heritage Walk', 'Temple Visit', 'Art Gallery'],
+            adventure: ['Desert Safari', 'Zip Lining', 'Rock Climbing', 'Trekking', 'Rafting'],
+            relaxation: ['Spa Session', 'Lake Visit', 'Garden Stroll', 'Yoga Class', 'Beach Time'],
+            food: ['Food Tour', 'Cooking Class', 'Street Food Walk', 'Fine Dining', 'Local Market']
+        };
+        
+        for (let day = 1; day <= (tripData.duration || 3); day++) {
+            const activities = [];
+            const timeSlots = ['09:00', '12:00', '15:00'];
+            
+            timeSlots.forEach((time, i) => {
+                const prefIndex = i % (tripData.preferences?.length || 1);
+                const pref = tripData.preferences?.[prefIndex] || 'cultural';
+                const templates = activityTemplates[pref] || activityTemplates.cultural;
+                const activity = templates[Math.floor(Math.random() * templates.length)];
+                
+                activities.push({
+                    time: time,
+                    activity: activity,
+                    location: `${tripData.destination || 'Destination'} - Spot ${i+1}`,
                     cost: Math.floor(dailyBudget * 0.3),
-                    duration: "2-3h",
-                    category: tripData.preferences[0] || "cultural"
-                },
-                {
-                    time: "12:00",
-                    activity: "Lunch & Exploration",
-                    location: `${tripData.destination} - Location ${day}`,
-                    cost: Math.floor(dailyBudget * 0.2),
-                    duration: "2h",
-                    category: "food"
-                },
-                {
-                    time: "15:00",
-                    activity: "Afternoon Activity",
-                    location: `${tripData.destination} - Location ${day}`,
-                    cost: Math.floor(dailyBudget * 0.3),
-                    duration: "2-3h",
-                    category: tripData.preferences[1] || "adventure"
-                }
-            ];
+                    duration: '2-3h',
+                    category: pref
+                });
+            });
             
             days.push({ day, activities });
         }
@@ -274,7 +275,7 @@ class BackendAPI {
                 optimization_score: 0.87
             },
             weather: {
-                forecasts: Array(tripData.duration).fill(null).map((_, i) => ({
+                forecasts: Array(tripData.duration || 3).fill(null).map((_, i) => ({
                     date: new Date(Date.now() + i * 86400000).toISOString().split('T')[0],
                     temp: Math.floor(Math.random() * 10) + 25,
                     condition: ["Sunny", "Partly Cloudy", "Cloudy"][Math.floor(Math.random() * 3)],
@@ -284,8 +285,8 @@ class BackendAPI {
                 bayesian_confidence: 0.85
             },
             budget: {
-                status: totalCost <= tripData.budget ? "within_budget" : "over_budget",
-                savings: tripData.budget - totalCost,
+                status: totalCost <= (tripData.budget || 15000) ? "within_budget" : "over_budget",
+                savings: (tripData.budget || 15000) - totalCost,
                 breakdown: {
                     accommodation: totalCost * 0.35,
                     food: totalCost * 0.25,
@@ -296,8 +297,12 @@ class BackendAPI {
             crowds: {
                 predictions: []
             },
-            explanation: "This itinerary was generated using our multi-agent system, considering your preferences, budget constraints, and real-time data.",
-            communication_log: []
+            explanation: "This itinerary was generated using our multi-agent system, considering your preferences, budget constraints, and destination highlights.",
+            communication_log: [
+                { from: "Planner", to: "Weather", message: "Requesting weather data", timestamp: new Date().toISOString() },
+                { from: "Weather", to: "Planner", message: "Weather data provided", timestamp: new Date().toISOString() },
+                { from: "Planner", to: "Budget", message: "Checking budget constraints", timestamp: new Date().toISOString() }
+            ]
         };
     }
 }

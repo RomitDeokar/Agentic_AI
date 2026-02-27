@@ -7,8 +7,9 @@ const CONFIG = {
     API_BASE_URL: 'http://localhost:8000',
     WS_URL: 'ws://localhost:8000/ws',
     
-    // Mapbox Configuration (using free token - replace with your own)
-    MAPBOX_TOKEN: 'process.env.MAPBOX_TOKEN',
+    // Map Configuration (FREE OpenStreetMap via Leaflet)
+    MAP_CENTER: [26.9124, 75.7873], // Jaipur, India
+    MAP_ZOOM: 6,
     
     // Agent Configuration
     AGENTS: [

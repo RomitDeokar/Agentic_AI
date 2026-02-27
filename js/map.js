@@ -1,313 +1,398 @@
 // ============================================
-// Mapbox Integration and Visualization
+// SmartRoute v5.0 - Map Integration
+// FREE OpenStreetMap with Leaflet.js
 // ============================================
 
-let map;
+let map = null;
 let markers = [];
-let routeLayer = null;
-let heatmapVisible = false;
+let routePolyline = null;
+let markerCluster = null;
 
-// Initialize Mapbox Map
-function initializeMap() {
-    mapboxgl.accessToken = CONFIG.MAPBOX_TOKEN;
+// Color scheme for activity types
+const ACTIVITY_COLORS = {
+    cultural: '#f59e0b',
+    adventure: '#10b981',
+    food: '#ef4444',
+    shopping: '#8b5cf6',
+    relaxation: '#06b6d4',
+    nightlife: '#ec4899',
+    default: '#667eea'
+};
+
+// Custom marker icons
+const createCustomIcon = (color, dayNumber) => {
+    return L.divIcon({
+        className: 'custom-marker',
+        html: `
+            <div style="
+                background: linear-gradient(135deg, ${color} 0%, ${adjustColor(color, -20)} 100%);
+                width: 40px;
+                height: 40px;
+                border-radius: 50% 50% 50% 0;
+                border: 3px solid white;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                font-weight: bold;
+                font-size: 14px;
+                transform: rotate(-45deg);
+                position: relative;
+            ">
+                <span style="transform: rotate(45deg);">${dayNumber}</span>
+            </div>
+        `,
+        iconSize: [40, 40],
+        iconAnchor: [12, 40],
+        popupAnchor: [8, -40]
+    });
+};
+
+// Adjust color brightness
+function adjustColor(color, percent) {
+    const num = parseInt(color.replace('#', ''), 16);
+    const amt = Math.round(2.55 * percent);
+    const R = (num >> 16) + amt;
+    const G = (num >> 8 & 0x00FF) + amt;
+    const B = (num & 0x0000FF) + amt;
+    return '#' + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+        (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+        (B < 255 ? B < 1 ? 0 : B : 255))
+        .toString(16).slice(1);
+}
+
+// Initialize map
+function initMap() {
+    console.log('🗺️  Initializing OpenStreetMap with Leaflet...');
     
     const mapContainer = document.getElementById('map');
-    if (!mapContainer) return;
-    
-    map = new mapboxgl.Map({
-        container: 'map',
-        style: 'mapbox://styles/mapbox/streets-v12',
-        center: [74.2179, 27.0238], // Rajasthan center
-        zoom: 6,
-        pitch: 45,
-        bearing: 0
-    });
-    
-    // Add navigation controls
-    map.addControl(new mapboxgl.NavigationControl(), 'top-right');
-    
-    // Add map load event
-    map.on('load', () => {
-        AgentLog.info('Map', 'Interactive map initialized');
-        
-        // Load initial route
-        if (STATE.currentItinerary) {
-            visualizeRoute(STATE.currentItinerary);
-        } else {
-            // Show default Rajasthan route
-            visualizeDefaultRoute();
-        }
-    });
-}
+    if (!mapContainer) {
+        console.error('❌ Map container #map not found');
+        return;
+    }
 
-// Visualize default route
-function visualizeDefaultRoute() {
-    const destination = CONFIG.DESTINATIONS['Rajasthan, India'];
-    if (!destination) return;
-    
-    // Clear existing markers
-    clearMarkers();
-    
-    // Add city markers
-    destination.cities.forEach((city, idx) => {
-        const marker = new mapboxgl.Marker({
-            color: '#9333EA'
-        })
-        .setLngLat(city.coords)
-        .setPopup(new mapboxgl.Popup().setHTML(`
-            <div style="padding: 8px;">
-                <h3 style="margin: 0 0 4px 0; font-size: 16px;">${city.name}</h3>
-                <p style="margin: 0; font-size: 12px; color: #6B7280;">Day ${idx + 1}</p>
-            </div>
-        `))
-        .addTo(map);
-        
-        markers.push(marker);
-    });
-    
-    // Draw route line
-    drawRoute(destination.cities.map(c => c.coords));
-}
-
-// Visualize itinerary route
-function visualizeRoute(itinerary) {
-    if (!map || !itinerary) return;
-    
-    clearMarkers();
-    
-    const coordinates = [];
-    
-    itinerary.days.forEach((day, idx) => {
-        const destination = CONFIG.DESTINATIONS['Rajasthan, India'];
-        const city = destination?.cities.find(c => c.name === day.city);
-        
-        if (city) {
-            coordinates.push(city.coords);
-            
-            // Add marker
-            const marker = new mapboxgl.Marker({
-                color: idx === 0 ? '#4F46E5' : (idx === itinerary.days.length - 1 ? '#10B981' : '#9333EA')
-            })
-            .setLngLat(city.coords)
-            .setPopup(new mapboxgl.Popup().setHTML(`
-                <div style="padding: 12px; min-width: 200px;">
-                    <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 700;">${city.name}</h3>
-                    <p style="margin: 0 0 4px 0; font-size: 12px; color: #6B7280;">Day ${day.day} - ${day.date}</p>
-                    <div style="margin-top: 8px; border-top: 1px solid #E5E7EB; padding-top: 8px;">
-                        <p style="margin: 0; font-size: 11px; font-weight: 600;">Activities:</p>
-                        ${day.activities.map(a => `
-                            <p style="margin: 4px 0 0 0; font-size: 11px;">• ${a.name}</p>
-                        `).join('')}
-                    </div>
-                </div>
-            `))
-            .addTo(map);
-            
-            markers.push(marker);
-        }
-    });
-    
-    // Draw route
-    if (coordinates.length > 1) {
-        drawRoute(coordinates);
-        
-        // Fit map to route
-        const bounds = coordinates.reduce((bounds, coord) => {
-            return bounds.extend(coord);
-        }, new mapboxgl.LngLatBounds(coordinates[0], coordinates[0]));
-        
-        map.fitBounds(bounds, {
-            padding: 50,
-            duration: 1000
+    try {
+        // Create Leaflet map centered on world
+        map = L.map('map', {
+            center: [20, 0],
+            zoom: 2,
+            zoomControl: true,
+            attributionControl: true
         });
-    }
-}
 
-// Draw route line on map
-function drawRoute(coordinates) {
-    if (!map || coordinates.length < 2) return;
-    
-    // Remove existing route
-    if (routeLayer && map.getLayer('route')) {
-        map.removeLayer('route');
-        map.removeSource('route');
-    }
-    
-    // Add route source and layer
-    map.addSource('route', {
-        type: 'geojson',
-        data: {
-            type: 'Feature',
-            properties: {},
-            geometry: {
-                type: 'LineString',
-                coordinates: coordinates
+        // Add beautiful tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19,
+            minZoom: 2
+        }).addTo(map);
+
+        // Add custom CSS for markers
+        const style = document.createElement('style');
+        style.textContent = `
+            .custom-marker {
+                background: transparent !important;
+                border: none !important;
             }
-        }
-    });
-    
-    map.addLayer({
-        id: 'route',
-        type: 'line',
-        source: 'route',
-        layout: {
-            'line-join': 'round',
-            'line-cap': 'round'
-        },
-        paint: {
-            'line-color': '#9333EA',
-            'line-width': 4,
-            'line-opacity': 0.8
-        }
-    });
-    
-    routeLayer = 'route';
+            .leaflet-popup-content-wrapper {
+                background: rgba(15, 17, 23, 0.95);
+                backdrop-filter: blur(20px);
+                border: 1px solid rgba(102, 126, 234, 0.3);
+                border-radius: 12px;
+                padding: 0;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            }
+            .leaflet-popup-content {
+                margin: 0;
+                padding: 16px;
+                color: white;
+                font-family: 'Inter', sans-serif;
+            }
+            .leaflet-popup-tip {
+                background: rgba(15, 17, 23, 0.95);
+                border: 1px solid rgba(102, 126, 234, 0.3);
+            }
+            .popup-title {
+                font-size: 18px;
+                font-weight: 700;
+                margin-bottom: 8px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+            }
+            .popup-info {
+                font-size: 14px;
+                color: #a0a0b2;
+                margin-bottom: 4px;
+            }
+            .popup-cost {
+                font-size: 16px;
+                font-weight: 600;
+                color: #4facfe;
+                margin-top: 8px;
+            }
+            .popup-media-btn {
+                margin-top: 12px;
+                padding: 8px 16px;
+                background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-weight: 600;
+                cursor: pointer;
+                width: 100%;
+                transition: transform 0.2s;
+            }
+            .popup-media-btn:hover {
+                transform: translateY(-2px);
+            }
+        `;
+        document.head.appendChild(style);
+
+        console.log('✅ Map initialized successfully!');
+        
+        // Show success toast
+        showToast('Map loaded successfully!', 'success');
+        
+    } catch (error) {
+        console.error('❌ Map initialization failed:', error);
+        showToast('Map initialization failed', 'error');
+    }
 }
 
-// Clear all markers
+// Clear all markers from map
 function clearMarkers() {
-    markers.forEach(marker => marker.remove());
-    markers = [];
-}
-
-// Zoom controls
-function zoomIn() {
-    if (map) {
-        map.zoomIn({ duration: 500 });
-    }
-}
-
-function zoomOut() {
-    if (map) {
-        map.zoomOut({ duration: 500 });
-    }
-}
-
-// Toggle heatmap overlay
-function toggleHeatmap() {
-    heatmapVisible = !heatmapVisible;
-    
-    if (heatmapVisible) {
-        addCrowdHeatmap();
-        showToast('Crowd heatmap enabled', 'info');
-    } else {
-        removeCrowdHeatmap();
-        showToast('Crowd heatmap disabled', 'info');
-    }
-}
-
-// Add crowd density heatmap
-function addCrowdHeatmap() {
-    if (!map) return;
-    
-    // Simulate crowd data points
-    const destination = CONFIG.DESTINATIONS['Rajasthan, India'];
-    if (!destination) return;
-    
-    const heatmapData = {
-        type: 'FeatureCollection',
-        features: destination.cities.map(city => ({
-            type: 'Feature',
-            properties: {
-                intensity: Utils.random(0.5, 1)
-            },
-            geometry: {
-                type: 'Point',
-                coordinates: city.coords
+    if (markers && markers.length > 0) {
+        markers.forEach(marker => {
+            if (marker && map) {
+                map.removeLayer(marker);
             }
-        }))
-    };
+        });
+        markers = [];
+    }
     
-    map.addSource('crowd-heatmap', {
-        type: 'geojson',
-        data: heatmapData
-    });
+    if (routePolyline && map) {
+        map.removeLayer(routePolyline);
+        routePolyline = null;
+    }
     
-    map.addLayer({
-        id: 'crowd-heatmap',
-        type: 'heatmap',
-        source: 'crowd-heatmap',
-        paint: {
-            'heatmap-weight': ['get', 'intensity'],
-            'heatmap-intensity': 1,
-            'heatmap-color': [
-                'interpolate',
-                ['linear'],
-                ['heatmap-density'],
-                0, 'rgba(33,102,172,0)',
-                0.2, 'rgb(103,169,207)',
-                0.4, 'rgb(209,229,240)',
-                0.6, 'rgb(253,219,199)',
-                0.8, 'rgb(239,138,98)',
-                1, 'rgb(178,24,43)'
-            ],
-            'heatmap-radius': 50,
-            'heatmap-opacity': 0.7
+    console.log('🗺️  Cleared all markers');
+}
+
+// Update map with itinerary data
+function updateMapWithItinerary(itinerary) {
+    if (!map) {
+        console.error('❌ Map not initialized');
+        initMap();
+        setTimeout(() => updateMapWithItinerary(itinerary), 1000);
+        return;
+    }
+
+    if (!itinerary || !itinerary.days || itinerary.days.length === 0) {
+        console.error('❌ Invalid itinerary data');
+        return;
+    }
+
+    console.log('🗺️  Updating map with itinerary:', itinerary);
+
+    clearMarkers();
+
+    const allCoordinates = [];
+    let activityCounter = 1;
+
+    // Process each day
+    itinerary.days.forEach((day, dayIndex) => {
+        if (!day.activities || day.activities.length === 0) {
+            console.warn(`⚠️  Day ${day.day} has no activities`);
+            return;
         }
+
+        // Process each activity
+        day.activities.forEach((activity, actIndex) => {
+            const lat = parseFloat(activity.lat);
+            const lon = parseFloat(activity.lon);
+
+            // Validate coordinates
+            if (isNaN(lat) || isNaN(lon)) {
+                console.warn(`⚠️  Invalid coordinates for ${activity.name}:`, activity);
+                return;
+            }
+
+            // Add to coordinates array
+            allCoordinates.push([lat, lon]);
+
+            // Get color for activity type
+            const activityColor = ACTIVITY_COLORS[activity.type] || ACTIVITY_COLORS.default;
+
+            // Create custom marker
+            const markerIcon = createCustomIcon(activityColor, activityCounter++);
+            
+            const marker = L.marker([lat, lon], { icon: markerIcon })
+                .addTo(map);
+
+            // Create popup content
+            const popupContent = `
+                <div class="popup-title">${activity.name}</div>
+                <div class="popup-info">⏰ ${activity.time || 'N/A'} • ${activity.duration || 'N/A'}</div>
+                <div class="popup-info">📍 Day ${day.day} • ${activity.type || 'Activity'}</div>
+                <div class="popup-cost">💰 ₹${activity.cost || 0}</div>
+                ${activity.media ? `<button class="popup-media-btn" onclick="showActivityMedia('${activity.name}', ${JSON.stringify(activity.media).replace(/"/g, '&quot;')})">
+                    📸 View Photos & Videos
+                </button>` : ''}
+            `;
+
+            marker.bindPopup(popupContent, {
+                maxWidth: 300,
+                className: 'custom-popup'
+            });
+
+            markers.push(marker);
+
+            console.log(`✅ Added marker for ${activity.name} at [${lat}, ${lon}]`);
+        });
     });
+
+    // Draw route line
+    if (allCoordinates.length > 1) {
+        routePolyline = L.polyline(allCoordinates, {
+            color: '#667eea',
+            weight: 3,
+            opacity: 0.7,
+            smoothFactor: 1,
+            dashArray: '10, 10'
+        }).addTo(map);
+
+        // Animate the route
+        let offset = 0;
+        setInterval(() => {
+            offset = (offset + 1) % 20;
+            if (routePolyline) {
+                routePolyline.setStyle({ dashOffset: offset });
+            }
+        }, 100);
+    }
+
+    // Fit map bounds to show all markers
+    if (allCoordinates.length > 0) {
+        const bounds = L.latLngBounds(allCoordinates);
+        map.fitBounds(bounds, {
+            padding: [50, 50],
+            maxZoom: 13,
+            animate: true,
+            duration: 1.0
+        });
+        
+        console.log(`✅ Map updated with ${allCoordinates.length} locations`);
+        showToast(`Showing ${allCoordinates.length} destinations on map`, 'success');
+    } else {
+        console.warn('⚠️  No valid coordinates to display');
+        showToast('No valid locations to display', 'warning');
+    }
 }
 
-// Remove crowd heatmap
-function removeCrowdHeatmap() {
-    if (!map) return;
-    
-    if (map.getLayer('crowd-heatmap')) {
-        map.removeLayer('crowd-heatmap');
+// Show activity media modal
+window.showActivityMedia = function(activityName, media) {
+    if (!media) {
+        console.warn('No media data for:', activityName);
+        return;
     }
-    if (map.getSource('crowd-heatmap')) {
-        map.removeSource('crowd-heatmap');
-    }
-}
 
-// Update weather cards
-function updateWeatherCards() {
-    const container = document.getElementById('weatherCards');
-    if (!container) return;
-    
-    const days = ['Today', 'Tomorrow', 'Day 3'];
-    const conditions = [
-        { icon: '☀️', temp: 28, condition: 'Sunny', prob: 85 },
-        { icon: '⛅', temp: 26, condition: 'Cloudy', prob: 70 },
-        { icon: '☀️', temp: 29, condition: 'Sunny', prob: 80 }
-    ];
-    
-    container.innerHTML = conditions.map((weather, idx) => `
-        <div class="weather-card">
-            <div class="weather-info">
-                <h4>${days[idx]}</h4>
-                <p>${weather.condition} - ${weather.temp}°C</p>
-                <p style="font-size: 11px; color: var(--text-tertiary); margin-top: 4px;">
-                    Probability: ${weather.prob}%
-                </p>
+    const modal = document.getElementById('mediaModal');
+    if (!modal) {
+        console.error('Media modal not found');
+        return;
+    }
+
+    // Update modal content
+    document.getElementById('modalActivityName').textContent = activityName;
+
+    // Update photos
+    const photoGrid = document.getElementById('modalPhotoGrid');
+    if (photoGrid && media.photos) {
+        photoGrid.innerHTML = media.photos.map(url => `
+            <div class="photo-item">
+                <img src="${url}" alt="${activityName}" loading="lazy" 
+                     onerror="this.src='https://via.placeholder.com/800x600?text=No+Image'">
             </div>
-            <div class="weather-icon">${weather.icon}</div>
-        </div>
-    `).join('');
+        `).join('');
+    }
+
+    // Update video links
+    const videoLinks = document.getElementById('modalVideoLinks');
+    if (videoLinks && media.videos) {
+        videoLinks.innerHTML = `
+            <a href="${media.videos.youtube_search}" target="_blank" class="link-btn">
+                <i class="fab fa-youtube"></i> Watch on YouTube
+            </a>
+        `;
+    }
+
+    // Update review links
+    const reviewLinks = document.getElementById('modalReviewLinks');
+    if (reviewLinks && media.reviews) {
+        reviewLinks.innerHTML = `
+            <a href="${media.reviews.google}" target="_blank" class="link-btn">
+                <i class="fab fa-google"></i> Google Reviews
+            </a>
+            <a href="${media.reviews.tripadvisor}" target="_blank" class="link-btn">
+                <i class="fab fa-tripadvisor"></i> TripAdvisor
+            </a>
+        `;
+    }
+
+    // Update map links
+    const mapLinks = document.getElementById('modalMapLinks');
+    if (mapLinks && media.maps) {
+        mapLinks.innerHTML = `
+            <a href="${media.maps.google}" target="_blank" class="link-btn">
+                <i class="fas fa-map-marked-alt"></i> Google Maps
+            </a>
+            <a href="${media.maps.osm}" target="_blank" class="link-btn">
+                <i class="fas fa-map"></i> OpenStreetMap
+            </a>
+        `;
+    }
+
+    // Show modal
+    modal.classList.add('active');
+};
+
+// Close media modal
+window.closeMediaModal = function() {
+    const modal = document.getElementById('mediaModal');
+    if (modal) {
+        modal.classList.remove('active');
+    }
+};
+
+// Toast notification
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    
+    const container = document.getElementById('toastContainer');
+    if (container) {
+        container.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.style.animation = 'slideOutRight 0.3s ease-out';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
 }
 
-// Update crowd heatmap data
-function updateCrowdData() {
-    const container = document.getElementById('crowdHeatmap');
-    if (!container) return;
-    
-    const locations = [
-        { name: 'Amber Fort', level: 'high' },
-        { name: 'City Palace', level: 'medium' },
-        { name: 'Hawa Mahal', level: 'high' },
-        { name: 'Jaigarh Fort', level: 'low' }
-    ];
-    
-    container.innerHTML = locations.map(loc => `
-        <div class="crowd-item">
-            <span>${loc.name}</span>
-            <span class="crowd-level ${loc.level}">${loc.level.toUpperCase()}</span>
-        </div>
-    `).join('');
+// Initialize map on load
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initMap);
+} else {
+    initMap();
 }
 
-// Initialize map and visualizations
-document.addEventListener('DOMContentLoaded', () => {
-    initializeMap();
-    updateWeatherCards();
-    updateCrowdData();
-});
+// Export functions
+window.initMap = initMap;
+window.updateMapWithItinerary = updateMapWithItinerary;
+window.clearMarkers = clearMarkers;
+
+console.log('✅ Map module loaded successfully');
