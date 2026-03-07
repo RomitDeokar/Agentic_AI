@@ -4,14 +4,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SmartRoute v10.0 — Agentic AI Travel Planner</title>
+    <title>SmartRoute v12.0 — API-Driven AI Travel Planner</title>
     <meta name="description"
         content="Multi-Agent Autonomous Travel Intelligence System with 7 specialized AI agents, MDP/RL, Bayesian inference, and beautiful modern UI.">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="css/app.css?v=10">
+    <link rel="stylesheet" href="css/app.css?v=12">
 </head>
 
 <body>
@@ -21,14 +21,12 @@
         <div class="header-inner">
             <div class="logo">
                 <div class="logo-icon">🤖</div>
-                <span>SmartRoute v10.0</span>
+                <span>SmartRoute v12.0</span>
                 <span class="badge">Agentic AI</span>
             </div>
             <div class="header-actions">
-                <button class="btn btn-accent" onclick="emergencyReplan()"><i class="fas fa-bolt"></i> Emergency
-                    Replan</button>
-                <button class="btn btn-delay" onclick="emergencyReplan()" title="Report a travel delay"><i
-                        class="fas fa-clock"></i> ⏰ Report Delay</button>
+                <button class="btn btn-accent" onclick="emergencyReplan()"><i class="fas fa-bolt"></i> Emergency Replan</button>
+                <button class="btn" style="background:rgba(6,182,212,0.15);color:#06b6d4" onclick="findNearbyPlaces()" title="Find places near your current location"><i class="fas fa-map-pin"></i> 📍 Nearby</button>
                 <button class="btn-icon" onclick="exportPDF()" title="Export PDF"><i
                         class="fas fa-file-pdf"></i></button>
                 <button class="btn-icon" onclick="shareTrip()" title="Share Trip"><i
@@ -184,6 +182,12 @@
                     </div>
                     <div class="discovery-grid" id="ytGrid"></div>
                 </div>
+            </div>
+
+            <!-- Nearby Places Panel -->
+            <div class="panel" id="nearbyPanel" style="display:none">
+                <div class="panel-title"><i class="fas fa-map-pin"></i> 📍 Nearby Places (Live)</div>
+                <div id="nearbyContainer"></div>
             </div>
 
             <!-- Language Tips -->
@@ -376,39 +380,70 @@
         </div>
     </div>
 
-    <!-- === DELAY REPLAN MODAL === -->
+    <!-- === EMERGENCY REPLAN MODAL (Delay + Weather + Crowd) === -->
     <div class="delay-modal-overlay" id="delayModal">
         <div class="delay-modal">
             <div class="delay-modal-header">
-                <h3>⏰ Report Travel Delay</h3>
+                <h3>⚡ Emergency Replan</h3>
                 <button class="btn-icon" onclick="document.getElementById('delayModal').classList.remove('active')">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             <div class="delay-modal-body">
                 <div class="delay-field">
-                    <label for="delayReason"><i class="fas fa-exclamation-triangle"></i> Delay Reason</label>
-                    <select id="delayReason">
-                        <option value="train_delay">🚂 Train Delayed</option>
-                        <option value="flight_delay">✈️ Flight Delayed</option>
-                        <option value="traffic">🚗 Traffic / Road Block</option>
-                        <option value="other">⏰ Other Reason</option>
+                    <label for="replanReason"><i class="fas fa-exclamation-triangle"></i> Replan Reason</label>
+                    <select id="replanReason" onchange="updateReplanFields()">
+                        <option value="delay">⏰ Travel Delay</option>
+                        <option value="weather">🌧️ Weather Risk</option>
+                        <option value="crowd">👥 Sudden Crowd</option>
                     </select>
                 </div>
-                <div class="delay-field">
-                    <label for="delayHours"><i class="fas fa-hourglass-half"></i> Hours Delayed</label>
-                    <input type="number" id="delayHours" min="1" max="12" value="4" step="0.5">
+
+                <!-- Delay Fields -->
+                <div id="delayFields">
+                    <div class="delay-field">
+                        <label for="delayHours"><i class="fas fa-hourglass-half"></i> Hours Delayed</label>
+                        <input type="number" id="delayHours" min="1" max="12" value="4" step="0.5">
+                    </div>
                 </div>
+
+                <!-- Weather Fields -->
+                <div id="weatherFields" style="display:none">
+                    <div class="delay-field">
+                        <label for="weatherRisk"><i class="fas fa-cloud-rain"></i> Weather Condition</label>
+                        <select id="weatherRisk">
+                            <option value="rain">🌧️ Rain Expected</option>
+                            <option value="heavy_rain">🌧️ Heavy Rain / Flooding</option>
+                            <option value="storm">⛈️ Storm / Thunderstorm</option>
+                            <option value="extreme_heat">🔥 Extreme Heat</option>
+                            <option value="snow">❄️ Snow / Blizzard</option>
+                            <option value="fog">🌫️ Dense Fog</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Crowd Fields -->
+                <div id="crowdFields" style="display:none">
+                    <div class="delay-field">
+                        <label for="crowdLevel"><i class="fas fa-users"></i> Crowd Level</label>
+                        <select id="crowdLevel">
+                            <option value="high">👥 High — Longer Wait Times</option>
+                            <option value="very_high">🚫 Very High — Consider Alternatives</option>
+                        </select>
+                    </div>
+                </div>
+
                 <div class="delay-field">
                     <label for="delayDay"><i class="fas fa-calendar-day"></i> Affected Day</label>
                     <input type="number" id="delayDay" min="1" max="14" value="1">
                 </div>
+
                 <p class="delay-info">
                     <i class="fas fa-info-circle"></i>
-                    AI agents will find nearby quick-visit alternatives and restructure your day to make the most of
-                    remaining time.
+                    AI agents will intelligently adjust your itinerary based on the selected scenario —
+                    rescheduling outdoor activities for weather, reordering for crowds, or trimming for delays.
                 </p>
-                <button class="btn btn-accent btn-full" onclick="delayReplan()">
+                <button class="btn btn-accent btn-full" onclick="doReplan()">
                     <i class="fas fa-sync-alt"></i> Replan Now — AI Agents Will Adjust
                 </button>
             </div>
@@ -470,7 +505,7 @@
 
     <!-- === SCRIPTS === -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/app.js?v=10"></script>
+    <script src="js/app.js?v=12"></script>
 
 </body>
 
