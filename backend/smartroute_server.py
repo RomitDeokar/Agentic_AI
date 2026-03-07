@@ -1292,6 +1292,106 @@ async def generate_trip(request: TripRequest, background_tasks: BackgroundTasks)
         raise HTTPException(status_code=500, detail=str(e))
 
 # ============================================
+# Chatbot Endpoint
+# ============================================
+
+class ChatRequest(BaseModel):
+    message: str
+    destination: str = ""
+    persona: str = "solo"
+    history: List[Dict] = []
+
+CHATBOT_KNOWLEDGE = {
+    "hidden_gems": {
+        "paris": ["Rue Cr\u00e9mieux (colorful street)", "Canal Saint-Martin", "Petite Ceinture (abandoned railway)", "Le Marais street art", "Promenade Plant\u00e9e (the original High Line)"],
+        "tokyo": ["Shimokitazawa vintage shops", "Yanaka cat district", "Golden Gai micro-bars", "Nakano Broadway", "Todoroki Valley"],
+        "london": ["Neal's Yard", "Leadenhall Market", "Little Venice canals", "God's Own Junkyard", "Postman's Park"],
+        "jaipur": ["Panna Meena ka Kund stepwell", "Patrika Gate", "Nahargarh Fort sunset", "Chand Baori (day trip)", "Anokhi Museum of Hand Printing"]
+    },
+    "food": {
+        "paris": ["Cr\u00eapes at Rue Mouffetard", "Falafel at L'As du Fallafel", "Croissants at Du Pain et des Id\u00e9es", "Steak frites at Le Relais de l'Entrec\u00f4te"],
+        "tokyo": ["\u00a5100 sushi at conveyor belt restaurants", "Ramen at Fuunji Shinjuku", "Tsukiji Outer Market seafood", "Takoyaki at Gindaco"],
+        "london": ["Borough Market food stalls", "Brick Lane curry mile", "Sunday roast at a proper pub", "Fish & chips at Poppies"],
+        "jaipur": ["Dal Bati Churma at Chokhi Dhani", "Pyaaz Kachori at Rawat", "Laal Maas", "Lassi at Lassiwala"]
+    },
+    "budget_tips": [
+        "Book accommodation 2-4 weeks in advance for best rates",
+        "Use local public transport instead of taxis",
+        "Eat where locals eat \u2014 street food is often the best food",
+        "Many museums have free entry days \u2014 check schedules",
+        "Get a local SIM card instead of using roaming",
+        "Walk! Best way to discover hidden gems and save money",
+        "Use apps like Skyscanner, Google Flights for cheapest options",
+        "Consider hostels with private rooms \u2014 half the price of hotels"
+    ],
+    "safety_tips": [
+        "Keep digital copies of all documents",
+        "Use hotel safes for valuables",
+        "Avoid displaying expensive jewelry",
+        "Use official taxis or ride-sharing apps",
+        "Register with your embassy for travel alerts",
+        "Always have travel insurance",
+        "Learn basic local phrases including 'help' and 'police'",
+        "Share your itinerary with someone back home"
+    ]
+}
+
+@app.post("/chatbot")
+async def chatbot_response(request: ChatRequest):
+    """AI chatbot for trip suggestions and help"""
+    try:
+        msg = request.message.lower()
+        dest = request.destination.lower().strip()
+        
+        response = ""
+        
+        if any(kw in msg for kw in ["hidden gem", "less known", "off the beaten", "secret", "viral"]):
+            gems = CHATBOT_KNOWLEDGE["hidden_gems"].get(dest, [])
+            if gems:
+                gem_list = "".join([f"<li><strong>{g}</strong></li>" for g in gems])
+                response = f"Here are amazing hidden gems in <strong>{request.destination}</strong>:<ul style='margin:6px 0 0 16px'>{gem_list}</ul><br>Check the Viral & Hidden Gems section for Instagram and YouTube curated spots!"
+            else:
+                response = f"For hidden gems in <strong>{request.destination}</strong>, I recommend:<ul style='margin:6px 0 0 16px'><li>Walk through residential neighborhoods</li><li>Visit morning markets before 8 AM</li><li>Ask locals at cafes for their favorite spots</li><li>Check the Instagram/YouTube discovery section below</li></ul>"
+        
+        elif any(kw in msg for kw in ["food", "eat", "restaurant", "cuisine", "dish"]):
+            foods = CHATBOT_KNOWLEDGE["food"].get(dest, [])
+            if foods:
+                food_list = "".join([f"<li><strong>{f}</strong></li>" for f in foods])
+                response = f"Must-try food in <strong>{request.destination}</strong>:<ul style='margin:6px 0 0 16px'>{food_list}</ul><br>Pro tip: Follow the crowds \u2014 long lines usually mean amazing food!"
+            else:
+                response = f"For food in <strong>{request.destination}</strong>:<ul style='margin:6px 0 0 16px'><li>Try street food \u2014 it's often the best!</li><li>Ask your hotel for local recommendations</li><li>Use Google Maps to find 4.5+ rated restaurants</li><li>Check the Restaurants tab in bookings</li></ul>"
+        
+        elif any(kw in msg for kw in ["budget", "save", "cheap", "money", "cost"]):
+            tips = random.sample(CHATBOT_KNOWLEDGE["budget_tips"], min(5, len(CHATBOT_KNOWLEDGE["budget_tips"])))
+            tips_list = "".join([f"<li>{t}</li>" for t in tips])
+            response = f"Smart budget tips{f' for {request.destination}' if dest else ''}:<ul style='margin:6px 0 0 16px'>{tips_list}</ul>"
+        
+        elif any(kw in msg for kw in ["safe", "danger", "scam", "security", "emergency"]):
+            tips = random.sample(CHATBOT_KNOWLEDGE["safety_tips"], min(5, len(CHATBOT_KNOWLEDGE["safety_tips"])))
+            tips_list = "".join([f"<li>{t}</li>" for t in tips])
+            response = f"Safety tips for traveling:<ul style='margin:6px 0 0 16px'>{tips_list}</ul>"
+        
+        elif any(kw in msg for kw in ["weather", "when", "best time", "season"]):
+            response = f"For the best time to visit{f' {request.destination}' if dest else ''}:<ul style='margin:6px 0 0 16px'><li><strong>Shoulder season</strong> \u2014 Just before/after peak for fewer crowds & lower prices</li><li><strong>Check weather panel</strong> on the right sidebar for current forecast</li><li><strong>Pack layers</strong> \u2014 Weather can change quickly</li></ul>"
+        
+        elif any(kw in msg for kw in ["packing", "pack", "bring", "carry"]):
+            response = "Essential packing tips:<ul style='margin:6px 0 0 16px'><li><strong>Universal adapter</strong> \u2014 Don't forget!</li><li><strong>Comfortable walking shoes</strong> \u2014 You'll walk more than expected</li><li><strong>Reusable water bottle</strong> \u2014 Saves money and plastic</li><li><strong>Power bank</strong> \u2014 For all that photo-taking</li><li><strong>Light rain jacket</strong> \u2014 Weather is unpredictable</li></ul>"
+        
+        elif any(kw in msg for kw in ["thank", "thanks", "helpful", "great"]):
+            response = "You're welcome! Happy to help with your trip. Feel free to ask anything else \u2014 from local customs to photo spots!"
+        
+        elif any(kw in msg for kw in ["hello", "hi", "hey", "start"]):
+            response = f"Hello! I'm your SmartRoute AI assistant. {f'Planning a trip to <strong>{request.destination}</strong>? ' if dest else ''}I can help with hidden gems, food recommendations, budget tips, safety advice, and more!"
+        
+        else:
+            response = f"Great question! {f'For {request.destination}, ' if dest else ''}I recommend checking:<ul style='margin:6px 0 0 16px'><li>The <strong>Viral & Hidden Gems</strong> section for unique spots</li><li>The <strong>Bookings</strong> tab for hotels, flights & restaurants</li><li>Rate activities to help the AI learn your preferences</li></ul>Ask me about food, hidden gems, budget tips, safety, or packing!"
+        
+        return {"success": True, "response": response}
+    
+    except Exception as e:
+        return {"success": False, "response": f"I had trouble processing that. Try asking about hidden gems, food, budget tips, or safety!"}
+
+# ============================================
 # WebSocket for Real-Time Agent Updates
 # ============================================
 
@@ -1314,9 +1414,12 @@ async def websocket_agents(websocket: WebSocket):
 
 if __name__ == "__main__":
     print("\n" + "="*60)
-    print("🤖 SmartRoute v7.0 - True Agentic AI System")
+    print("🤖 SmartRoute v9.0 - Agentic AI Travel Planner")
     print("="*60)
     print(f"✅ {len(agent_manager.agents)} Autonomous Agents Active")
+    print(f"✅ AI Chatbot Ready")
+    print(f"✅ Social Discovery (Instagram/YouTube) Ready")
+    print(f"✅ Real Photo Resolution Active")
     print(f"🌍 Server: http://localhost:8000")
     print(f"📚 API Docs: http://localhost:8000/docs")
     print(f"🤖 Agent Status: http://localhost:8000/agents/status")

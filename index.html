@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SmartRoute v8.0 — AI Travel Intelligence</title>
+    <title>SmartRoute v9.0 — AI Travel Planner</title>
     <meta name="description"
         content="Multi-Agent Autonomous Travel Intelligence System with 7 specialized AI agents, MDP/RL, Bayesian inference, and beautiful modern UI.">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
@@ -21,11 +21,10 @@
         <div class="header-inner">
             <div class="logo">
                 <div class="logo-icon">🤖</div>
-                <span>SmartRoute v8.0</span>
+                <span>SmartRoute v9.0</span>
                 <span class="badge">Agentic AI</span>
             </div>
             <div class="header-actions">
-                <button class="btn btn-warm" onclick="startDemo()"><i class="fas fa-magic"></i> Auto Demo</button>
                 <button class="btn btn-accent" onclick="emergencyReplan()"><i class="fas fa-bolt"></i> Emergency
                     Replan</button>
                 <button class="btn btn-delay" onclick="emergencyReplan()" title="Report a travel delay"><i
@@ -164,6 +163,29 @@
                 </div>
             </div>
 
+            <!-- Social Discovery (Instagram/YouTube Viral Places) -->
+            <div class="itin-section" id="socialDiscoverySection">
+                <div class="section-title"><i class="fas fa-compass"></i> Viral & Hidden Gems Discovery</div>
+                <div class="discovery-tabs">
+                    <button class="disc-tab active" onclick="switchDiscoveryTab('instagram',this)"><i class="fab fa-instagram"></i> Instagram Trending</button>
+                    <button class="disc-tab" onclick="switchDiscoveryTab('youtube',this)"><i class="fab fa-youtube"></i> YouTube Hidden Gems</button>
+                </div>
+                <div id="disc-instagram" class="disc-content active">
+                    <div class="empty-state" id="instaEmpty">
+                        <div class="emoji">📸</div>
+                        <p>Trending Instagram spots will appear after generating a trip.</p>
+                    </div>
+                    <div class="discovery-grid" id="instaGrid"></div>
+                </div>
+                <div id="disc-youtube" class="disc-content" style="display:none">
+                    <div class="empty-state" id="ytEmpty">
+                        <div class="emoji">🎬</div>
+                        <p>YouTube hidden gem recommendations will appear after generating a trip.</p>
+                    </div>
+                    <div class="discovery-grid" id="ytGrid"></div>
+                </div>
+            </div>
+
             <!-- Language Tips -->
             <div class="lang-section" id="languageTips">
                 <div class="section-title">🗣️ Language Tips</div>
@@ -240,17 +262,7 @@
                 <div id="explainPanel" class="text-sm text-muted">Agents will explain their decisions here...</div>
             </div>
 
-            <!-- Syllabus Alignment -->
-            <div class="panel">
-                <div class="panel-title"><i class="fas fa-graduation-cap"></i> Syllabus Alignment</div>
-                <ul class="syllabus-list">
-                    <li><strong>Unit 1:</strong> Multi-agent systems, agentic patterns</li>
-                    <li><strong>Unit 2:</strong> RL (MDP/PPO/DQN), Bayesian adaptability</li>
-                    <li><strong>Unit 3:</strong> Goal-oriented reasoning, MCTS, POMDP</li>
-                    <li><strong>Unit 4:</strong> Explainability, human-AI interaction, ethics</li>
-                    <li><strong>Unit 5:</strong> Travel vertical, GenAI + RAG, autonomous agents</li>
-                </ul>
-            </div>
+
         </aside>
     </div>
 
@@ -408,6 +420,49 @@
         <div class="spinner"></div>
         <div class="loading-text">🤖 AI Agents are working...</div>
         <div class="loading-sub">Research · Planning · Booking · Optimizing</div>
+    </div>
+
+    <!-- === AI CHATBOT === -->
+    <div class="chatbot-toggle" id="chatbotToggle" onclick="toggleChatbot()">
+        <i class="fas fa-robot"></i>
+        <span class="chatbot-badge" id="chatbotBadge" style="display:none">1</span>
+    </div>
+    <div class="chatbot-window" id="chatbotWindow">
+        <div class="chatbot-header">
+            <div class="chatbot-header-info">
+                <div class="chatbot-avatar">🤖</div>
+                <div>
+                    <div class="chatbot-name">SmartRoute AI Assistant</div>
+                    <div class="chatbot-status">Online — Ready to help</div>
+                </div>
+            </div>
+            <button class="btn-icon" onclick="toggleChatbot()" style="width:30px;height:30px"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="chatbot-messages" id="chatMessages">
+            <div class="chat-msg bot">
+                <div class="chat-msg-avatar">🤖</div>
+                <div class="chat-msg-bubble">Hi! I'm your SmartRoute AI travel assistant. I can help you with:
+                    <ul style="margin:6px 0 0 16px;font-size:0.82rem">
+                        <li>Trip suggestions & recommendations</li>
+                        <li>Best time to visit places</li>
+                        <li>Budget planning tips</li>
+                        <li>Local food & culture advice</li>
+                        <li>Safety tips & travel hacks</li>
+                    </ul>
+                    Ask me anything about your trip!
+                </div>
+            </div>
+        </div>
+        <div class="chatbot-suggestions" id="chatSuggestions">
+            <button onclick="sendSuggestion('What are some hidden gems to visit?')">Hidden gems</button>
+            <button onclick="sendSuggestion('Best local food to try?')">Local food</button>
+            <button onclick="sendSuggestion('Budget saving tips?')">Budget tips</button>
+            <button onclick="sendSuggestion('Safety tips for traveling?')">Safety tips</button>
+        </div>
+        <div class="chatbot-input">
+            <input type="text" id="chatInput" placeholder="Ask about your trip..." onkeydown="if(event.key==='Enter')sendChatMessage()">
+            <button onclick="sendChatMessage()"><i class="fas fa-paper-plane"></i></button>
+        </div>
     </div>
 
     <!-- === TOAST CONTAINER === -->
