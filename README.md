@@ -3,7 +3,7 @@
 ## ✨ COMPLETE AUTOMATION - AI AGENTS WORK FOR YOU!
 
 **Version 7.0** is a complete rewrite with TRUE autonomous AI agents that plan EVERYTHING for you!
-
+Link : https://8080-ic19qvcjm09gli215dffg-0e616f0a.sandbox.novita.ai/
 ---
 
 ## 🎯 WHAT'S NEW IN v7.0
